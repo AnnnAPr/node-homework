@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const dirName = 'sample-files';
+const dirName = path.join(__dirname, 'sample-files');
 const filename = 'sample.txt';
 const filePath = path.join(dirName, filename);
 const fileContent = 'Hello, async world!';
@@ -20,7 +20,7 @@ fs.readFile(filePath, 'utf8', (err, data) => {
     console.error(`callback error: ${err}`);
     return;
   }
-  console.log(data);
+  console.log(`callback: ${data}`);
 });
 
 
@@ -36,8 +36,9 @@ fs.readFile(filePath, 'utf8', (err, data) => {
 
 
   // 2. Promise style
-  fs.promises.readFile(filePath, 'utf8')
-    .then(data => console.log(data))
+  fs.promises
+    .readFile(filePath, 'utf8')
+    .then(data => console.log(`promise: ${data}`))
     .catch(err => console.error(`promise error: ${err}`));
 
   // 3. Async/Await style
@@ -45,7 +46,7 @@ fs.readFile(filePath, 'utf8', (err, data) => {
   async function runAsyncAwait () {
     try {
       const data = await fs.promises.readFile(filePath, 'utf8');
-      console.log(data);
+      console.log(`async/await: ${data}`);
     } catch (err) {
       console.error(`async/await error: ${err}`);
     }
