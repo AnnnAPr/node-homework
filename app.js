@@ -13,7 +13,7 @@ app.get("/", (req, res) => {
 });
 
 const userRouter = require("./routes/userRoutes");
-app.get('/api/users', userRouter);
+app.use('/api/users', userRouter);
 
 app.post("/testpost", (req, res) => {
   res.status(200).json({

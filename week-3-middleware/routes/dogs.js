@@ -16,7 +16,7 @@ router.post("/adopt", (req, res) => {
   }
 
   if (!dogs.find(dog => dog.name === dogName)) {
-    throw new NotFoundError("/not found or not available/");
+    throw new NotFoundError("not found or not available");
   }
 
   res.status(201).json({
