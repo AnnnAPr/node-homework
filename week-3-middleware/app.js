@@ -23,6 +23,11 @@ app.use((req, res, next) => {
 });
 
 app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}]: ${req.method} ${req.path} (${req.requestId})`);
+  next();
+})
+
+app.use((req, res, next) => {
   if (req.method === "POST" && !req.headers["content-type"]?.startsWith("application/json")) {
     return res.status(400).json({
       "error": "Content-Type must be application/json",
@@ -32,9 +37,13 @@ app.use((req, res, next) => {
   next();
 })
 
-
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}]: ${req.method} ${req.path} (${req.requestId})`);
+  if (req.method === "POST" && !req.headers["content-type"]?.startsWith("application/json")) {
+    return res.status(400).json({
+      "error": "Content-Type must be application/json",
+      "requestId": req.requestId,
+    })
+  }
   next();
 })
 
