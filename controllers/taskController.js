@@ -1,6 +1,9 @@
 const { taskSchema, patchTaskSchema } = require("../validation/taskSchema");
 
 function create(req, res) {
+  if (!global.user_id) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
   const userEmail = global.user_id.email;
 
   if (!userEmail) {
@@ -31,6 +34,9 @@ function create(req, res) {
 }
 
 function index(req, res) {
+  if (!global.user_id) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
   const userEmail = global.user_id.email;
 
   if (!userEmail) {
@@ -53,6 +59,9 @@ function index(req, res) {
   res.status(200).json(sanitizedTasks);
 }
 function show(req, res) {
+  if (!global.user_id) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
   const userEmail = global.user_id.email;
   if (!userEmail) {
     return res.status(401).json({ message: "Authentication required" });
@@ -79,6 +88,9 @@ function show(req, res) {
 }
 
 function update(req, res) {
+  if (!global.user_id) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
   const userEmail = global.user_id.email;
 
   if (!userEmail) {
@@ -114,6 +126,9 @@ function update(req, res) {
 }
 
 function deleteTask(req, res) {
+  if (!global.user_id) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
   const userEmail = global.user_id.email;
   if (!userEmail) {
     return res.status(401).json({ message: "Authentication required" });
