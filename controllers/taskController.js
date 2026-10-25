@@ -1,14 +1,21 @@
 const { taskSchema, patchTaskSchema } = require("../validation/taskSchema");
 
-function create(req, res) {
-  if (!global.user_id) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
-  const userEmail = global.user_id.email;
+function getUserEmail(req) {
+  return req.user?.email || global.user_id?.email;
+}
 
+function requireAuth(req, res) {
+  const userEmail = getUserEmail(req);
   if (!userEmail) {
-    return res.status(401).json({ message: "Authentication required" });
+    res.status(401).json({ message: "Authentication required" });
+    return;
   }
+  return userEmail;
+}
+
+function create(req, res) {
+  const userEmail = requireAuth(req, res);
+  if (!userEmail) return;
 
   if (!req.body) req.body = {};
 
@@ -34,14 +41,8 @@ function create(req, res) {
 }
 
 function index(req, res) {
-  if (!global.user_id) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
-  const userEmail = global.user_id.email;
-
-  if (!userEmail) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
+  const userEmail = requireAuth(req, res);
+  if (!userEmail) return;
 
   const tasks = global.tasks.filter((task) => {
     return task.userId === userEmail;
@@ -59,13 +60,8 @@ function index(req, res) {
   res.status(200).json(sanitizedTasks);
 }
 function show(req, res) {
-  if (!global.user_id) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
-  const userEmail = global.user_id.email;
-  if (!userEmail) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
+  const userEmail = requireAuth(req, res);
+  if (!userEmail) return;
 
   const taskId = parseInt(req.params?.id);
 
@@ -88,14 +84,9 @@ function show(req, res) {
 }
 
 function update(req, res) {
-  if (!global.user_id) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
-  const userEmail = global.user_id.email;
-
-  if (!userEmail) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
+  const userEmail = requireAuth(req, res);
+  if (!userEmail) return;
+  
   const taskId = parseInt(req.params?.id);
   if (!taskId) {
     return res
@@ -126,13 +117,9 @@ function update(req, res) {
 }
 
 function deleteTask(req, res) {
-  if (!global.user_id) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
-  const userEmail = global.user_id.email;
-  if (!userEmail) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
+  const userEmail = requireAuth(req, res);
+  if (!userEmail) return;
+  
   const taskId = parseInt(req.params?.id);
 
   if (!taskId) {
