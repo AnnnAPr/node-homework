@@ -13,7 +13,7 @@ app.get("/", (req, res) => {
 });
 
 const userRouter = require("./routes/userRoutes");
-app.use('/api/users', userRouter);
+app.use("/api/users", userRouter);
 
 app.post("/testpost", (req, res) => {
   res.status(200).json({
@@ -37,6 +37,10 @@ server.on("error", (err) => {
 
 const timeRouter = require("./routes/timeRoutes");
 app.use("/api", timeRouter);
+
+const authMiddleware = require("./middleware/auth");
+const taskRouter = require("./routes/taskRoutes");
+app.use("/api/tasks", authMiddleware, taskRouter);
 
 const notFound = require("./middleware/not-found");
 app.use(notFound);
