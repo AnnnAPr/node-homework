@@ -6,8 +6,6 @@ const app = express();
 app.use(express.json());
 
 global.user_id = null;
-global.users = [];
-global.tasks = [];
 
 app.get("/", (req, res) => {
   res.send("Hello, World!");
