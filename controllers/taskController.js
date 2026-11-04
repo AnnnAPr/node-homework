@@ -1,22 +1,16 @@
 const { taskSchema, patchTaskSchema } = require("../validation/taskSchema");
+const pool = require("../db/pg-pool");
 
-function getUserEmail(req) {
-  return req.user?.email || global.user_id?.email;
+function toCamelCase(task) {
+  if (!task) return task;
+  return {
+    id: task.id,
+    title: task.title,
+    isCompleted: task.is_completed,
+  };
 }
 
-function requireAuth(req, res) {
-  const userEmail = getUserEmail(req);
-  if (!userEmail) {
-    res.status(401).json({ message: "Authentication required" });
-    return;
-  }
-  return userEmail;
-}
-
-function create(req, res) {
-  const userEmail = requireAuth(req, res);
-  if (!userEmail) return;
-
+async function create(req, res) {
   if (!req.body) req.body = {};
 
   const { error, value } = taskSchema.validate(req.body, { abortEarly: false });
@@ -24,45 +18,32 @@ function create(req, res) {
     return res.status(400).json({ message: error.message });
   }
 
-  const newTask = {
-    id: taskCounter(),
-    userId: userEmail,
-    ...value,
-  };
+  const result = await pool.query(
+    `INSERT INTO tasks (title, is_completed, user_id) 
+     VALUES ($1, $2, $3) RETURNING id, title, is_completed`,
+    [value.title, value.isCompleted, global.user_id],
+  );
 
-  if (!Array.isArray(global.tasks)) {
-    global.tasks = [];
-  }
-  global.tasks.push(newTask);
-
-  const { userId, ...sanitizedTask } = newTask;
-
-  res.status(201).json(sanitizedTask);
+  const task = result.rows[0];
+  return res.status(201).json(toCamelCase(task));
 }
 
-function index(req, res) {
-  const userEmail = requireAuth(req, res);
-  if (!userEmail) return;
+async function index(req, res) {
+  const result = await pool.query(
+    "SELECT id, title, is_completed FROM tasks WHERE user_id = $1",
+    [global.user_id],
+  );
 
-  const tasks = global.tasks.filter((task) => {
-    return task.userId === userEmail;
-  });
+  const tasks = result.rows;
 
   if (tasks.length === 0) {
     return res.status(404).json({ message: "No tasks found" });
   }
 
-  const sanitizedTasks = tasks.map((task) => {
-    const { userId, ...sanitizedTask } = task;
-    return sanitizedTask;
-  });
-
-  res.status(200).json(sanitizedTasks);
+  res.status(200).json(tasks.map(toCamelCase));
 }
-function show(req, res) {
-  const userEmail = requireAuth(req, res);
-  if (!userEmail) return;
 
+async function show(req, res) {
   const taskId = parseInt(req.params?.id);
 
   if (!taskId) {
@@ -71,22 +52,20 @@ function show(req, res) {
     });
   }
 
-  const task = global.tasks.find(
-    task => task.id === taskId && task.userId === userEmail,
+  const result = await pool.query(
+    "SELECT id, title, is_completed FROM tasks WHERE id = $1 AND user_id = $2",
+    [taskId, global.user_id],
   );
 
+  const task = result.rows[0];
   if (!task) {
     return res.status(404).json({ message: "Task not found." });
   }
 
-  const { userId, ...sanitizedTask } = task;
-  res.status(200).json(sanitizedTask);
+  return res.status(200).json(toCamelCase(task));
 }
 
-function update(req, res) {
-  const userEmail = requireAuth(req, res);
-  if (!userEmail) return;
-  
+async function update(req, res) {
   const taskId = parseInt(req.params?.id);
   if (!taskId) {
     return res
@@ -103,23 +82,27 @@ function update(req, res) {
     return res.status(400).json({ message: error.message });
   }
 
-  const task = global.tasks.find(
-    task => task.id === taskId && task.userId === userEmail,
+  let keys = Object.keys(value);
+  keys = keys.map((key) => (key === "isCompleted" ? "is_completed" : key));
+  const setClauses = keys.map((key, i) => `${key} = $${i + 1}`).join(", ");
+  const idParm = `$${keys.length + 1}`;
+  const userParm = `$${keys.length + 2}`;
+  const result = await pool.query(
+    `UPDATE tasks SET ${setClauses} 
+  WHERE id = ${idParm} AND user_id = ${userParm} RETURNING id, title, is_completed`,
+    [...Object.values(value), taskId, global.user_id],
   );
+
+  const task = result.rows[0];
 
   if (!task) {
     return res.status(404).json({ message: "Task not found." });
   }
 
-  Object.assign(task, value);
-  const { userId, ...sanitizedTask } = task;
-  res.status(200).json(sanitizedTask);
+  return res.status(200).json(toCamelCase(task));
 }
 
-function deleteTask(req, res) {
-  const userEmail = requireAuth(req, res);
-  if (!userEmail) return;
-  
+async function deleteTask(req, res) {
   const taskId = parseInt(req.params?.id);
 
   if (!taskId) {
@@ -128,27 +111,16 @@ function deleteTask(req, res) {
       .json({ message: "The task ID passed is not valid." });
   }
 
-  const taskIndex = global.tasks.findIndex(
-    task => task.id === taskId && task.userId === userEmail,
+  const result = await pool.query(
+    "DELETE FROM tasks WHERE id = $1 AND user_id = $2",
+    [taskId, global.user_id],
   );
 
-  if (taskIndex === -1) {
+  if (result.rowCount === 0) {
     return res.status(404).json({ message: "Task not found." });
   }
-
-  const [deletedTask] = global.tasks.splice(taskIndex, 1);
-
-  const { userId, ...sanitizedTask } = deletedTask;
-  res.status(200).json(sanitizedTask);
+  return res.status(200).json({ message: "Task deleted" });
 }
-
-const taskCounter = (() => {
-  let lastTaskNumber = 0;
-  return () => {
-    lastTaskNumber += 1;
-    return lastTaskNumber;
-  };
-})();
 
 module.exports = {
   create,
