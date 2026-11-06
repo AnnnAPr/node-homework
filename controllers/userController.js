@@ -67,6 +67,10 @@ async function logon(req, res) {
     where: { email: normalizedEmail },
   });
 
+  if (!user) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+
   const goodCredentials = await comparePassword(password, user.hashedPassword);
 
   if (!goodCredentials) {
