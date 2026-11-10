@@ -108,7 +108,7 @@ async function update(req, res, next) {
   }
 }
 
-async function deleteTask(req, res) {
+async function deleteTask(req, res, next) {
   const taskId = parseInt(req.params?.id);
 
   if (!taskId) {
@@ -128,6 +128,8 @@ async function deleteTask(req, res) {
     if (err.code === "P2025") {
       return res.status(404).json({ message: "The task was not found." });
     }
+
+    next(err);
   }
 
   return res.status(200).json({ message: "Task deleted" });
