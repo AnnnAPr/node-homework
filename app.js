@@ -5,6 +5,8 @@ const app = express();
 
 app.use(express.json());
 
+const authMiddleware = require("./middleware/auth");
+
 global.user_id = null;
 
 app.get("/", (req, res) => {
@@ -21,6 +23,9 @@ app.get("/health", async (req, res) => {
       .json({ status: "error", db: "not connected", error: err.message });
   }
 });
+
+const analyticsRouter = require("./routes/analyticsRoutes");
+app.use("/api/analytics", authMiddleware, analyticsRouter);
 
 const userRouter = require("./routes/userRoutes");
 app.use("/api/users", userRouter);
@@ -80,7 +85,6 @@ process.on("SIGTERM", () => shutdown(0));
 const timeRouter = require("./routes/timeRoutes");
 app.use("/api", timeRouter);
 
-const authMiddleware = require("./middleware/auth");
 const taskRouter = require("./routes/taskRoutes");
 app.use("/api/tasks", authMiddleware, taskRouter);
 
