@@ -6,8 +6,7 @@ const {
   show,
 } = require("../controllers/userController");
 const { userSchema } = require("../validation/userSchema");
-const authMiddleware = require("../middleware/auth");
-
+const jwtMiddleware = require("../middleware/jwtMiddleware");
 const router = express.Router();
 
 const validateUser = (req, res, next) => {
@@ -20,7 +19,7 @@ const validateUser = (req, res, next) => {
 
 router.post("/register", validateUser, register);
 router.post("/logon", logon);
-router.post("/logoff", logoff);
-router.get("/show/:id", authMiddleware, show);
+router.post("/logoff", jwtMiddleware, logoff);
+router.get("/show/:id", jwtMiddleware, show);
 
 module.exports = router;
