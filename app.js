@@ -1,13 +1,26 @@
 const express = require("express");
 const prisma = require("./db/prisma");
+const jwtMiddleware = require("./middleware/jwtMiddleware");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 
+app.set("trust proxy", 1);
+const helmet = require("helmet");
+const { xss } = require("express-xss-sanitizer");
+const rateLimiter = require("express-rate-limit");
+
+app.use(
+  rateLimiter({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+  }),
+);
+
 app.use(express.json());
-
-const authMiddleware = require("./middleware/auth");
-
-global.user_id = null;
+app.use(cookieParser());
+app.use(helmet());
+app.use(xss());
 
 app.get("/", (req, res) => {
   res.send("Hello, World!");
@@ -25,7 +38,7 @@ app.get("/health", async (req, res) => {
 });
 
 const analyticsRouter = require("./routes/analyticsRoutes");
-app.use("/api/analytics", authMiddleware, analyticsRouter);
+app.use("/api/analytics", jwtMiddleware, analyticsRouter);
 
 const userRouter = require("./routes/userRoutes");
 app.use("/api/users", userRouter);
@@ -68,7 +81,6 @@ async function shutdown(code = 0) {
     console.log("HTTP server closed.");
 
     // Close all PostgreSQL connections after the HTTP server has stopped.
-
     await prisma.$disconnect();
     console.log("Prisma disconnected");
   } catch (err) {
@@ -86,7 +98,7 @@ const timeRouter = require("./routes/timeRoutes");
 app.use("/api", timeRouter);
 
 const taskRouter = require("./routes/taskRoutes");
-app.use("/api/tasks", authMiddleware, taskRouter);
+app.use("/api/tasks", jwtMiddleware, taskRouter);
 
 const notFound = require("./middleware/not-found");
 app.use(notFound);

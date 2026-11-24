@@ -1,7 +1,7 @@
 const { taskSchema, patchTaskSchema } = require("../validation/taskSchema");
 const prisma = require("../db/prisma");
 
-async function create(req, res) {
+async function create(req, res, next) {
   if (!req.body) req.body = {};
 
   const { error, value } = taskSchema.validate(req.body, { abortEarly: false });
@@ -15,7 +15,7 @@ async function create(req, res) {
         title: value.title,
         isCompleted: value.isCompleted || false,
         priority: value.priority || "medium",
-        userId: global.user_id,
+        userId: req.user.id,
       },
       select: {
         id: true,
@@ -27,7 +27,7 @@ async function create(req, res) {
     });
     return res.status(201).json(task);
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    return next(err);
   }
 }
 
@@ -49,7 +49,7 @@ const getOrderBy = (query) => {
 };
 
 async function index(req, res) {
-  const whereClause = { userId: global.user_id };
+  const whereClause = { userId: req.user.id };
 
   if (req.query.find) {
     whereClause.title = {
@@ -128,7 +128,7 @@ async function show(req, res) {
   const task = await prisma.task.findUnique({
     where: {
       id: taskId,
-      userId: global.user_id,
+      userId: req.user.id,
     },
     select: {
       id: true,
@@ -174,7 +174,7 @@ async function update(req, res, next) {
       data: value,
       where: {
         id: taskId,
-        userId: global.user_id,
+        userId: req.user.id,
       },
       select: { title: true, isCompleted: true, priority: true, id: true },
     });
@@ -201,7 +201,7 @@ async function deleteTask(req, res, next) {
     await prisma.task.delete({
       where: {
         id: taskId,
-        userId: global.user_id,
+        userId: req.user.id,
       },
     });
   } catch (err) {
@@ -239,7 +239,7 @@ async function bulkCreate(req, res, next) {
       title: value.title,
       isCompleted: value.isCompleted || false,
       priority: value.priority || "medium",
-      userId: global.user_id,
+      userId: req.user.id,
     });
   }
 
